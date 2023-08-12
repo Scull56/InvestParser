@@ -1,17 +1,32 @@
 import customtkinter as ctk
 
+import re
+
 from modules.CTkTable import CTkTable
 
 from utils.InvestExceptions import *
-
 from parsers.InvestParser import InvestParser
+from analyzers.InvestAnalyzer import InvestAnalyzer
 
 from db.commands import (
    get_companies,
+   get_countries,
+   get_sectors,
+   get_industries,
    add_company as db_add
 )
 
+
+
 class Table(ctk.CTkFrame):
+   
+   analyze_colors = {
+      "best": "#12ae51",
+      "good": "#3f7354",
+      "neutral": "#e0ce65",
+      "bad": "#8e4141",
+      "worst": "#ff1616"
+   }
    
    def __init__(self, master):
       super().__init__(master)
@@ -24,6 +39,14 @@ class Table(ctk.CTkFrame):
       ctk.get_appearance_mode()
       
       companies = get_companies()
+      countries = get_countries()
+      industries = get_industries()
+      sectors = get_sectors()
+      
+      countries = map(lambda item: item[0], countries)
+      industries = map(lambda item: item[0], industries)
+      sectors = map(lambda item: item[0], sectors)
+      
       data = []
       
       for item in companies:
@@ -46,17 +69,17 @@ class Table(ctk.CTkFrame):
       self.sheet.grid(row=0, column=0, sticky="nsew")
       
       self.sheet.create_header_dropdown(c = 0,
-                                       values = ["all", "1", "2", "3"],
+                                       values = ["all", *countries],
                                        set_value = "all",
                                        selection_function = self.header_dropdown_selected,
                                        text = "Страна")
       self.sheet.create_header_dropdown(c = 1,
-                                       values = ["all", "a", "b", "c"],
+                                       values = ["all", *industries],
                                        set_value = "all",
                                        selection_function = self.header_dropdown_selected,
                                        text = "Индустрия")
       self.sheet.create_header_dropdown(c = 2,
-                                       values = ["all", "x", "y", "z"],
+                                       values = ["all", *sectors],
                                        set_value = "all",
                                        selection_function = self.header_dropdown_selected,
                                        text = "Сектор")
@@ -78,7 +101,60 @@ class Table(ctk.CTkFrame):
       pass
    
    def alalyze_data(self):
-      pass
+      
+      sets = {}
+      data = self.sheet.data
+      
+      for i, row in enumerate(data):
+         
+         group = f"{row[0]}{row[1]}{row[2]}"
+         
+         if group in sets:
+            sets[group].append(i)
+            
+         else:
+            sets[group] = [i]
+      
+      analyzer = InvestAnalyzer()
+      
+      for set in sets:
+         
+         dataSet = [[data[i][4], data[i][5], data[i][6], data[i][7], data[i][8], data[i][9], data[i][10], data[i][11], data[i][12]] for i in set]
+         
+         dataSet[0] = float(re.split(' ', dataSet[0])[1])
+         dataSet[1] = float(re.sub('%', '', dataSet[1]))
+         dataSet[2] = float(re.sub('%', '', dataSet[2]))
+         dataSet[3] = float(dataSet[3])
+         dataSet[4] = float(dataSet[4])
+         dataSet[5] = float(dataSet[5])
+         dataSet[6] = float(re.sub('%', '', dataSet[6]))
+         dataSet[7] = float(re.sub('%', '', dataSet[7]))
+         
+         analyze_map = analyzer.analyze(set)
+         
+         analyze_map_colors = [row for row in analyze_map Table.analyze_colors[item] for item in row]
+         
+         for i, rowIndex in enumerate(set):
+            for columnIndex in range(9):
+               
+               self.sheet.highlight_cells(row=rowIndex, column=columnIndex, bg=analyze_map_colors[i][columnIndex])
+         
+      self.sheet.redraw()
    
    def header_dropdown_selected(self, event = None):
-      pass
+      
+      hdrs = self.sheet.headers()
+      hdrs = [hdrs[0], hdrs[1], hdrs[2]]
+      
+      hdrs[event.column] = event.text
+      
+      if all(dd == "all" for dd in hdrs):
+         self.sheet.display_rows("all")
+         
+      else:
+         rows = [rn for rn, row in enumerate(self.sheet.data) if all(row[c] == e or e == "all" for c, e in enumerate(hdrs))]
+         self.sheet.display_rows(rows = rows, all_displayed = False)
+         
+      self.sheet.redraw()
+      
+      return float(re.sub('%', '', str))
