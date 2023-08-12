@@ -5,13 +5,17 @@ import customtkinter as ctk
 from components.SideBar import SideBar
 from components.MainView import MainView
 
+from db.init_db import init_db
+
 ctk.set_appearance_mode("Dark")  # Modes: "System" (standard), "Dark", "Light"
 ctk.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
+
+init_db()
 
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
-
+         
         # configure window
         self.title("InvestParser")
         

@@ -5,8 +5,9 @@ name = "pypi"
 
 [packages]
 customtkinter = "*"
-investpy = "*"
 tksheet = "*"
+requests = "*"
+beautifulsoup4 = "*"
 
 [dev-packages]
 

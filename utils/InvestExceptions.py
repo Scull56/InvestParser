@@ -1,0 +1,2 @@
+class NotFoundCompany(Exception):
+   pass
