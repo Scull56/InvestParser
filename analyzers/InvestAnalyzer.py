@@ -12,22 +12,23 @@ class InvestAnalyzer():
       
       tech_analysis_data = []
       
-      for item in data:
+      for row in data:
          
-         tech_analysis_data.append(item[-1])
-         data.pop(-1)
+         tech_analysis_data.append(row[-1])
+         row.pop(-1)
       
-      maxValues = [data[0]]
-      minValues = [data[0]]
+      maxValues = [*data[0]]
+      minValues = [*data[0]]
       
-      for i, row in enumerate(data, 1):
-         for j in range(len(row)):
-         
-            if maxValues[i][j] < row[j]:
-               maxValues[i][j] = row[j]
-            
-            if minValues[i][j] > row[j]:
-               minValues[i][j] = row[j]
+      if len(data) > 1:
+         for i, row in enumerate(data, 1):
+            for j in range(len(row)):
+               
+               if maxValues[j] < row[j]:
+                  maxValues[j] = row[j]
+               
+               if minValues[j] > row[j]:
+                  minValues[j] = row[j]
       
       averageValues = []
       
@@ -44,7 +45,33 @@ class InvestAnalyzer():
       for i, minValue in enumerate(minValues):
          preMinValues.append((minValue + averageValues[i])/2)
       
+      for row in data:
+         for i in range(len(row)):
+            
+            if row[i] >= maxValues[i] * 0.9:
+               row[i] = 'best'
+               continue
+            
+            if row[i] >= preMaxValues[i] * 0.9 and row[i] < maxValues[i] * 0.9:
+               row[i] = 'good'
+               continue
+            
+            if row[i] >= averageValues[i] * 1.1 and row[i] < preMaxValues[i] * 0.9:
+               row[i] = 'neutral'
+               continue
+            
+            if row[i] <= averageValues[i] * 0.9 and row[i] > minValues[i] * 1.1:
+               row[i] = 'bad'
+               continue
+            
+            if row[i] <= minValues[i] * 1.1:
+               row[i] = 'worst'
+               continue
       
+      for i, item in enumerate(tech_analysis_data):
+         data[i].append(InvestAnalyzer.tech_analysis_dict[item])
+      
+      return data
       
       
       

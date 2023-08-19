@@ -1,29 +1,22 @@
 import requests
-from bs4 import BeautifulSoup as bs
+from parsel import Selector
 import re
 
 from utils.InvestExceptions import *
 
 class InvestParser():
    
-   def __init__(self, company):
+   def __init__(self, id, company):
       
-      urlSummary = f'https://www.investing.com/equities/{company}-financial-summary'
-      urlIncome = f'https://www.investing.com/equities/{company}-income-statement'
-      urlRatios = f'https://www.investing.com/equities/{company}-ratios'
-      urlTechnical = f'https://www.investing.com/equities/{company}-technical'
-      urlProfile = f'https://www.investing.com/equities/{company}-company-profile'
+      urlSummary = f'https://www.investing.com/instruments/Financials/changesummaryreporttypeajax?action=change_report_type&pid={id}&financial_id={id}&ratios_id={id}&period_type=Annual'
+      urlRatios = f'https://www.investing.com/{company}-ratios'
+      urlTechnical = f'https://www.investing.com/{company}/technical/technical-summary'
       
       summary_res = requests.get(urlSummary)
-      income_res = requests.get(urlIncome)
       ratios_res = requests.get(urlRatios)
       technical_res = requests.get(urlTechnical)
-      profile_res = requests.get(urlProfile)
       
       if summary_res.status_code == 404:
-         raise NotFoundCompany()
-      
-      if income_res.status_code == 404:
          raise NotFoundCompany()
       
       if ratios_res.status_code == 404:
@@ -32,149 +25,150 @@ class InvestParser():
       if technical_res.status_code == 404:
          raise NotFoundCompany()
       
-      if profile_res.status_code == 404:
-         raise NotFoundCompany()
-      
-      self.summary = bs(summary_res.text, "html.parser")
-      self.income =bs(income_res.text, "html.parser")
-      self.ratios =  bs(ratios_res.text, "html.parser")
-      self.technical = bs(technical_res.text, "html.parser")
-      self.profile = bs(profile_res.text, "html.parser")
+      self.summary = Selector(text=summary_res.text)
+      self.ratios =  Selector(text=ratios_res.text)
+      self.technical = Selector(text=technical_res.text)
       
    def parse(self):
       
       result = {}
+      errors = []
       
-      result["country"] = self.parse_country()
-      result["industry"] = self.parse_industry()
-      result['sector'] = self.parse_sector()
+      result["country"] = self.parse_info('Market')
+      result["industry"] = self.parse_info('Industry')
+      result['sector'] = self.parse_info('Sector')
       result["title"] = self.parse_title()
       result["ebitda"] = self.parse_ebitda()
-      result["net_profit_margin"] = self.parse_from_summary('Net Profit margin')
-      result["debt_to_equity"] = self.parse_from_summary('Total Debt to Equity')
-      result["diluted_eps"] = self.parse_from_income('Diluted Normalized EPS')
+      result["net_profit_margin"] = self.parse_net_profit_margin()
+      result["debt_to_equity"] = self.parse_debt_to_equity()
+      result["eps"] = self.parse_from_ratios('Basic EPS ')
       result["p_e"] = self.parse_from_ratios('P/E Ratio ')
       result["p_s"] = self.parse_from_ratios('Price to Sales ')
-      result["roe"] = self.parse_from_ratios('Return on Equity ')
-      result["roa"] = self.parse_from_ratios('Return on Assets ')
+      result["roe"] = self.parse_roe()
+      result["roa"] = self.parse_roa()
       result['tech_analysis'] = self.parse_tech_analysis()
+      
+      for param in result.keys():
+         
+         if result[param] == None:
+            
+            errors.append(param)
+      
+      if len(errors) > 0:
+         
+         raise NotFoundParams(errors)
       
       return result
    
    def parse_title(self):
-
-      elem = self.summary.find('h1')
      
-      if elem.string == None:
-         return ""
-     
-      return re.sub(r'\) ', ')', elem.string)
+      title = self.ratios.xpath('//h1/text()').get()
+      
+      if title == None:
+         return None
+      
+      return re.sub(r'\) ', ')', title)
       
    def parse_ebitda(self):
       
-      summaryText = self.summary.find("p", id="profile-story")
-      
-      if summaryText == None:
-         return ""
-      
-      summaryText = summaryText.string
-      
-      summaryText = re.search(r'was \D+\S+ [^\. ]*', summaryText)
-            
-      summaryText = re.sub(r'was ', '', summaryText[0])
-      
-      summaryText = re.split(' ', summaryText)
-      
-      summaryText[1] = float(re.sub(',', '.', summaryText[1]))
-      
-      if len(summaryText) == 3:
-         if summaryText[2] == "million":
-            return f'{summaryText[0]} {summaryText[1] / 1000}'
-         if summaryText[2] == "billion":
-            return f'{summaryText[0]} {summaryText[1]}'
-      else:
-         return ""
-       
-   def parse_from_summary(self, text):
-      
-      attrs = {
-         "class": "float_lang_base_2 text_align_lang_base_2 dirLtr bold"
-      }
-      
-      elem = self.summary.find('span', text=text)
-      elem = elem.find_next_sibling(attrs=attrs)
-      
-      if elem == None:
-         return ""
-       
-      return re.sub(' ', '', elem.string)
+      return self.summary.xpath("/html/body/div[1]/table/tbody/tr[1]/td[2]/text()").get()
    
-   def parse_from_income(self, text):
+   def parse_net_income(self):
       
-      elem = self.income.find(text=text)
-      elem = elem.parent.parent.parent
+      income = self.summary.xpath("/html/body/div[1]/table/tbody/tr[4]/td[2]/text()").get()
       
-      try:
-         elem = elem.contents[3]
-      except:
-         return ""
+      if income == None:
+         income = self.summary.xpath("/html/body/div[1]/table/tbody/tr[4]/td[3]/text()").get()
+   
+      return income
+   
+   def parse_equity(self):
+      equity = self.summary.xpath('//td[text()="Total Equity"]/following-sibling::td[1]/text()').get()
       
-      return elem.string
+      if equity == None:
+         equity = self.summary.xpath('//td[text()="Total Equity"]/following-sibling::td[2]/text()').get()
+         
+      return equity
+   
+   def parse_debt_to_equity(self):
+      
+      equity = self.parse_equity()
+      debt = self.summary.xpath('//td[text()="Total Liabilities"]/following-sibling::td[1]/text()').get()
+      
+      if equity == None or debt == None:
+         return None
+      
+      value = round((int(debt) / int(equity)) * 100, 2)
+         
+      return value
+   
+   def parse_net_profit_margin(self):
+      
+      npm = self.parse_from_ratios('Net Profit margin ')
+      
+      if npm == None:
+         income = self.parse_net_income()
+         ebitda = self.parse_ebitda()
+         
+         if income == None or ebitda == None:
+            return None
+         
+         npm = round((int(income) / int(ebitda)) * 100, 2)
+         
+      else:
+         npm = re.sub(r'%', '', npm)
+         
+      return npm
+   
+   def parse_assets(self):
+      assets = self.summary.xpath("/html/body/div[3]/table/tbody/tr[1]/td[2]/text()").get()
+
+      if assets == None:
+         assets = self.summary.xpath("/html/body/div[3]/table/tbody/tr[1]/td[3]/text()").get()
+         
+      return assets
+   
+   def parse_roa(self):
+      roa = self.parse_from_ratios('Return on Assets ')
+      
+      if roa == None or roa == '0%':
+         income = self.parse_net_income()
+         assets = self.parse_assets()
+         
+         if income == None or assets == None:
+            return None
+         
+         roa = round((int(income) / int(assets)) * 100, 2)
+         
+      else:
+         roa = re.sub(r'%', '', roa)
+         
+      return roa
+   
+   def parse_roe(self):
+      roe = self.parse_from_ratios('Return on Equity ')
+      
+      if roe == None or roe == '0%':
+         income = self.parse_net_income()
+         equity = self.parse_equity()
+         
+         if income == None or equity == None:
+            return None
+         
+         roe = round((int(income) / int(equity)) * 100, 2)
+      else:
+         roe = re.sub(r'%', '', roe)
+         
+      return roe
    
    def parse_from_ratios(self, text):
       
-      elem = self.ratios.find(text=text)
-      elem = elem.parent.parent.parent
-      
-      try:
-         elem = elem.contents[3]
-      except:
-         return ""
-      
-      return elem.string
+      return self.ratios.xpath(f'//table[@id="rrTable"]//span[text()="{text}"]/../following-sibling::td[1]/text()').get()
    
    def parse_tech_analysis(self):
       
-      elem = self.technical.find(text='Summary:')
-      elem = elem.next_sibling
-      
-      return elem.string
+      return self.technical.xpath('//table/tbody/tr[3]/td[6]/text()').get()
    
-   def parse_country(self):
+   def parse_info(self, text):
       
-      elem = self.profile.find('span', text='Address')
-      
-      if elem == None:
-         return ""
-      
-      elem = elem.next_element.next_element.next_element
-      
-      if elem == None:
-         return ""
-      
-      elem = elem.contents[-1]
-
-      return elem.string
-   
-   def parse_industry(self):
-      
-      attrs = {
-         "class": "companyProfileHeader"
-      }
-      
-      elem = self.profile.find("div", attrs=attrs)
-      
-      elem = elem.contents[1].a
-   
-      return elem.string
-   
-   def parse_sector(self):
-      attrs = {
-         "class": "companyProfileHeader"
-      }
-      
-      elem = self.profile.find("div", attrs=attrs)
-      
-      elem = elem.contents[3].a
-   
-      return elem.string
+      return self.technical.xpath(f'//div[text()="{text}"]/following-sibling::a[1]/text()').get()

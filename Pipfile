@@ -7,7 +7,7 @@ name = "pypi"
 customtkinter = "*"
 tksheet = "*"
 requests = "*"
-beautifulsoup4 = "*"
+parsel = "*"
 
 [dev-packages]
 

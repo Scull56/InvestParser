@@ -8,9 +8,9 @@ def get_companies():
 
 def add_company(data):
    
-   values = f'"{data["country"]}", "{data["industry"]}", "{data["sector"]}", "{data["title"]}", "{data["ebitda"]}", "{data["net_profit_margin"]}", "{data["p_e"]}", "{data["p_s"]}", "{data["diluted_eps"]}", "{data["roe"]}", "{data["roa"]}", "{data["debt_to_equity"]}", "{data["tech_analysis"]}"'
+   values = f'"{data["company_id"]}", "{data["url"]}", "{data["country"]}", "{data["industry"]}", "{data["sector"]}", "{data["title"]}", "{data["ebitda"]}", "{data["net_profit_margin"]}", "{data["p_e"]}", "{data["p_s"]}", "{data["eps"]}", "{data["roe"]}", "{data["roa"]}", "{data["debt_to_equity"]}", "{data["tech_analysis"]}"'
    
-   command = f"INSERT INTO companies (country, industry, sector, title, ebitda, net_profit_margin, p_e, p_s, diluted_eps, roe, roa, debt_to_equity, tech_analysis) VALUES ({values})"
+   command = f"INSERT INTO companies (company_id, url, country, industry, sector, title, ebitda, net_profit_margin, p_e, p_s, eps, roe, roa, debt_to_equity, tech_analysis) VALUES ({values})"
    
    return db_request('invest_parser.db', command)
 
@@ -32,4 +32,14 @@ def get_sectors():
    command = "SELECT DISTINCT sector FROM companies"
    
    return db_request('invest_parser.db', command)
+
+def delete_companies(id_list):
+   
+   id_string = map(lambda id: f'id = {id}', id_list)
+   id_string = ' OR '.join(id_string)
+   
+   command = f"DELETE FROM companies WHERE {id_string}"
+   
+   return db_request('invest_parser.db', command)
+   
    
