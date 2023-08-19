@@ -7,16 +7,17 @@ class InvestAnalyzer():
       "Sell": "bad",
       "Strong Sell": "worst"
    }
+   
+   def __init__(self, mode_list):
+      self.mode_list = mode_list
       
    def analyze(self, data):
-      
-      tech_analysis_data = []
-      
+
       for row in data:
-         
-         tech_analysis_data.append(row[-1])
-         row.pop(-1)
-      
+         for i in range(len(row)):
+            if self.mode_list[i] == 'near_zero':
+               row[i] = 1 / row[i]
+
       maxValues = [*data[0]]
       minValues = [*data[0]]
       
@@ -24,56 +25,64 @@ class InvestAnalyzer():
          for i, row in enumerate(data, 1):
             for j in range(len(row)):
                
-               if maxValues[j] < row[j]:
-                  maxValues[j] = row[j]
-               
-               if minValues[j] > row[j]:
-                  minValues[j] = row[j]
+               if self.mode_list[j] != 'value':
+                  if maxValues[j] < row[j]:
+                     maxValues[j] = row[j]
+                  
+                  if minValues[j] > row[j]:
+                     minValues[j] = row[j]
+               else:
+                  maxValues[j] = ''
+                  minValues[j] = ''
       
       averageValues = []
-      
+
       for i, maxValue in enumerate(maxValues):
-         averageValues.append((maxValue + minValues[i])/2)
-      
-      preMaxValues = []
-      
-      for i, maxValue in enumerate(maxValues):
-         preMaxValues.append((maxValue + averageValues[i])/2)
          
-      preMinValues = []
-      
-      for i, minValue in enumerate(minValues):
-         preMinValues.append((minValue + averageValues[i])/2)
+         if self.mode_list[i] != 'value':
+            averageValues.append((maxValue + minValues[i])/2)
+            
+         else:
+            averageValues.append('')
       
       for row in data:
          for i in range(len(row)):
             
-            if row[i] >= maxValues[i] * 0.9:
-               row[i] = 'best'
-               continue
+            if self.mode_list[i] in ['near_zero', 'more']:
             
-            if row[i] >= preMaxValues[i] * 0.9 and row[i] < maxValues[i] * 0.9:
-               row[i] = 'good'
-               continue
+               row[i] = self.get_definer(row[i], maxValues[i], minValues[i], averageValues[i], 'more')
             
-            if row[i] >= averageValues[i] * 1.1 and row[i] < preMaxValues[i] * 0.9:
-               row[i] = 'neutral'
-               continue
+            if self.mode_list[i] == 'less':
+               
+               row[i] = self.get_definer(row[i], maxValues[i], minValues[i], averageValues[i], 'less')
             
-            if row[i] <= averageValues[i] * 0.9 and row[i] > minValues[i] * 1.1:
-               row[i] = 'bad'
-               continue
-            
-            if row[i] <= minValues[i] * 1.1:
-               row[i] = 'worst'
-               continue
-      
-      for i, item in enumerate(tech_analysis_data):
-         data[i].append(InvestAnalyzer.tech_analysis_dict[item])
+            if self.mode_list[i] == 'value':
+               
+               row[i] = InvestAnalyzer.tech_analysis_dict[row[i]]
       
       return data
       
+   def get_definer(self, value, max, min, avarage, mode):
       
+      if max == min:
+         return 'best'
       
+      maxBorder = max * 0.8 if max > 0 else max * 1.2
+      avarageTop = avarage * 1.1 if avarage > 0 else avarage * 0.9
+      avarageBottom = avarage * 0.9 if avarage > 0 else avarage * 1.1
+      minBorder = min * 1.2 if min > 0 else min * 0.8
       
+      if value >= maxBorder:
+         return 'best' if mode == 'more' else 'worst'
       
+      if value >= avarageTop and value < maxBorder:
+         return 'good' if mode == 'more' else 'bad'
+      
+      if value >= avarageTop and value < avarageBottom:
+         return 'neutral'
+      
+      if value <= avarageBottom and value > minBorder:
+         return 'bad' if mode == 'more' else 'good'
+      
+      if value <= minBorder:
+         return 'worst' if mode == 'more' else 'best'

@@ -77,7 +77,10 @@ class AddСompany(ctk.CTkFrame):
       
       except NotFoundParams as error:
          self.status_label.show_message(f"Ошибка: не найдены параметры {', '.join(error.params)}")
-      
+         
+      except CompanyAlreadyAdded:
+         self.status_label.show_message("Компания уже добавлена", 'info')
+
       except KeyError:
          self.status_label.show_message("Выберите компанию из списка поиска")
       

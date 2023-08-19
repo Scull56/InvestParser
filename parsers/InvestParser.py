@@ -8,21 +8,29 @@ class InvestParser():
    
    def __init__(self, id, company):
       
+      company = company.split('?')
+      
+      company_path = company[0]
+      company_query = ''
+      
+      if len(company) > 1:
+         company_query = company[1]
+      
       urlSummary = f'https://www.investing.com/instruments/Financials/changesummaryreporttypeajax?action=change_report_type&pid={id}&financial_id={id}&ratios_id={id}&period_type=Annual'
-      urlRatios = f'https://www.investing.com/{company}-ratios'
-      urlTechnical = f'https://www.investing.com/{company}/technical/technical-summary'
+      urlRatios = f'https://www.investing.com/{company_path}-ratios{"?" + company_query if company_query != "" else ""}'
+      urlTechnical = f'https://www.investing.com/{company_path}/technical/technical-summary{"?" + company_query if company_query != "" else ""}'
       
       summary_res = requests.get(urlSummary)
       ratios_res = requests.get(urlRatios)
       technical_res = requests.get(urlTechnical)
       
-      if summary_res.status_code == 404:
+      if summary_res.status_code != 200:
          raise NotFoundCompany()
       
-      if ratios_res.status_code == 404:
+      if ratios_res.status_code != 200:
          raise NotFoundCompany()
       
-      if technical_res.status_code == 404:
+      if technical_res.status_code != 200:
          raise NotFoundCompany()
       
       self.summary = Selector(text=summary_res.text)
@@ -34,7 +42,7 @@ class InvestParser():
       result = {}
       errors = []
       
-      result["country"] = self.parse_info('Market')
+      result["country"] = self.parse_country()
       result["industry"] = self.parse_info('Industry')
       result['sector'] = self.parse_info('Sector')
       result["title"] = self.parse_title()
@@ -57,6 +65,13 @@ class InvestParser():
       if len(errors) > 0:
          
          raise NotFoundParams(errors)
+      
+      result['ebitda'] = int(result['ebitda'])
+      
+      float_list = ['net_profit_margin', 'debt_to_equity', 'eps', 'p_e', 'p_s', 'roe', 'roa']
+
+      for name in float_list:
+         result[name] = float(result[name])
       
       return result
    
@@ -169,6 +184,20 @@ class InvestParser():
       
       return self.technical.xpath('//table/tbody/tr[3]/td[6]/text()').get()
    
+   def parse_country(self):
+      
+      country = self.parse_info('Market')
+      
+      if country == None:
+         country = self.ratios.xpath(f'//span[text()="Market:"]/following-sibling::span/@title').get()
+   
+      return country
+   
    def parse_info(self, text):
       
-      return self.technical.xpath(f'//div[text()="{text}"]/following-sibling::a[1]/text()').get()
+      info = self.technical.xpath(f'//div[text()="{text}"]/following-sibling::a[1]/text()').get()
+      
+      if info == None:
+         info = self.technical.xpath(f'//div[text()="{text}"]/a/text()').get()
+         
+      return info

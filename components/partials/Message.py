@@ -13,7 +13,7 @@ class Message(ctk.CTkFrame):
       self.grid_columnconfigure(0, weight=1)
       self.grid_rowconfigure(0, weight=1)
       
-      self.status_label = ctk.CTkLabel(self, text="", text_color="#DCE4EE")
+      self.status_label = ctk.CTkLabel(self, text="", text_color="#DCE4EE", justify='left')
       self.status_label.grid(row=0, column=0)
       
    def show_message(self, message, style="error"):

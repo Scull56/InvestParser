@@ -13,17 +13,19 @@ from db.commands import (
    get_sectors,
    get_industries,
    add_company as db_add,
-   delete_companies as db_delete
+   delete_companies as db_delete,
+   get_last_company_id,
+   get_company_by_id
 )
 
 class Table(ctk.CTkFrame):
    
    analyze_colors = {
-      "best": "#0d7a39",
-      "good": "#00451c",
-      "neutral": "#7d7338",
-      "bad": "#570000",
-      "worst": "#910404"
+      "best": "#084722",
+      "good": "#01240f",
+      "neutral": "#453b00",
+      "bad": "#4a0101",
+      "worst": "#6e0202"
    }
    
    def __init__(self, master):
@@ -48,7 +50,7 @@ class Table(ctk.CTkFrame):
       data = []
       
       for item in companies:
-         data.append([item[0], item[3], item[4], item[5], item[6], item[7], item[8], item[9], item[10], item[11], item[12], item[13], item[14], item[15]])
+         data.append([item[0], item[3], item[5], item[4], item[6], item[7], item[8], item[9], item[10], item[11], item[12], item[13], item[14], item[15]])
       
       self.sheet = CTkTable(self,
                             data=data,
@@ -57,7 +59,7 @@ class Table(ctk.CTkFrame):
                             column_width=120,
                             row_height=75)
       
-      self.sheet.headers(["ID", "Страна","Индустрия","Сектор","Компания","EBITDA", "Net Profit Margin %", "P/E", "P/S", "EPS", "ROE %", "ROA %", "Debt/Equity %", "Технический анализ"])
+      self.sheet.headers(["ID", "Страна","Сектор", "Индустрия", "Компания","EBITDA", "Net Profit Margin %", "P/E", "P/S", "EPS", "ROE %", "ROA %", "Debt/Equity %", "Технический анализ"])
 
       self.sheet.hide_columns(columns = 0)
       
@@ -73,32 +75,42 @@ class Table(ctk.CTkFrame):
                                        set_value = "all",
                                        selection_function = self.header_dropdown_selected,
                                        text = "Страна")
+      
       self.sheet.create_header_dropdown(c = 2,
-                                       values = ["all", *industries],
-                                       set_value = "all",
-                                       selection_function = self.header_dropdown_selected,
-                                       text = "Индустрия")
-      self.sheet.create_header_dropdown(c = 3,
                                        values = ["all", *sectors],
                                        set_value = "all",
                                        selection_function = self.header_dropdown_selected,
                                        text = "Сектор")
+      
+      self.sheet.create_header_dropdown(c = 3,
+                                       values = ["all", *industries],
+                                       set_value = "all",
+                                       selection_function = self.header_dropdown_selected,
+                                       text = "Индустрия")
+      
       self.analyze_data()
       
    def add_company(self, id, url):
+      
+      check = get_company_by_id(id)
+      
+      if len(check) > 0:
+         raise CompanyAlreadyAdded()
       
       parser = InvestParser(id, url)
       
       data = parser.parse()
       
-      newId = self.sheet.data[-1][0] + 1
-      
-      self.sheet.insert_row([newId, data["country"], data["industry"], data["sector"], data["title"], data["ebitda"], data["net_profit_margin"], data["p_e"], data["p_s"], data["eps"], data["roe"], data["roa"], data["debt_to_equity"], data["tech_analysis"]])
-      
       data['url'] = url
       data['company_id'] = id
       
       db_add(data)
+      
+      lastId = get_last_company_id()
+      
+      lastId = lastId[0][0]
+      
+      self.sheet.insert_row([lastId, data["country"], data["sector"], data["industry"], data["title"], data["ebitda"], data["net_profit_margin"], data["p_e"], data["p_s"], data["eps"], data["roe"], data["roa"], data["debt_to_equity"], data["tech_analysis"]])
       
       self.analyze_data()
       
@@ -110,6 +122,8 @@ class Table(ctk.CTkFrame):
       db_delete(rows_id)
       
       self.sheet.delete_rows(rows)
+      
+      self.analyze_data()
    
    def update_data(self):
       pass
@@ -119,6 +133,9 @@ class Table(ctk.CTkFrame):
       sets = {}
       data = self.sheet.data
       
+      if len(data) == 0:
+         return
+         
       for i, row in enumerate(data):
          
          group = f"{row[1]}{row[2]}{row[3]}"
@@ -129,53 +146,41 @@ class Table(ctk.CTkFrame):
          else:
             sets[group] = [i]
       
-      analyzer = InvestAnalyzer()
+      analyzer = InvestAnalyzer(["more", "more", "near_zero", "near_zero", "more", "more", "more", "less", "value"])
       
       for set in sets:
          
          dataSet = []
          
-         for item in sets[set]:
+         for rowIndex in sets[set]:
             
-            dataSet.append([
-               data[item][5], 
-               data[item][6], 
-               data[item][7], 
-               data[item][8], 
-               data[item][9], 
-               data[item][10], 
-               data[item][11], 
-               data[item][12], 
-               data[item][13]
-            ])
-         
-         print(dataSet)
+            dataSet.append(data[rowIndex][5:14])
          
          analyze_map = analyzer.analyze(dataSet)
          
          for i in range(len(analyze_map)):
             for j in range(len(analyze_map[i])):
-               analyze_map[i][j] = Table.analyze_colors[analyze_map[i][j]]
-         
-            for rowIndex in sets[set]:
-               for columnIndex in range(9):
-                  
-                  self.sheet.highlight_cells(row=rowIndex, column= 5 + columnIndex, fg="white", bg=analyze_map[i][columnIndex])
-
+               
+               bg = Table.analyze_colors[analyze_map[i][j]]
+               rowIndex = sets[set][i]
+               
+               self.sheet.highlight_cells(row=rowIndex, column= 5 + j, fg="#DCE4EE", bg=bg)
+               
       self.sheet.redraw()
    
    def header_dropdown_selected(self, event = None):
       
       hdrs = self.sheet.headers()
-      hdrs = [hdrs[1], hdrs[2], hdrs[3]]
       
+      hdrs = [hdrs[1], hdrs[2], hdrs[3]]
       hdrs[event.column] = event.text
       
       if all(dd == "all" for dd in hdrs):
          self.sheet.display_rows("all")
          
       else:
-         rows = [rn for rn, row in enumerate(self.sheet.data) if all(row[c] == e or e == "all" for c, e in enumerate(hdrs))]
+         
+         rows = [rn for rn, row in enumerate(self.sheet.data) if all(row[c + 1] == e or e == "all" for c, e in enumerate(hdrs))]
          self.sheet.display_rows(rows = rows, all_displayed = False)
          
       self.sheet.redraw()
