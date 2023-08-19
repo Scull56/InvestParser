@@ -5,6 +5,8 @@ from components.partials.AddCompany import AddСompany
 from components.partials.Table import Table
 from components.partials.Message import Message
 
+from utils.storage import storage
+
 class MainView(ctk.CTkFrame):
    
    def __init__(self, master):
@@ -23,6 +25,8 @@ class MainView(ctk.CTkFrame):
       # table with companies
       table = Table(body)
       table.grid(row=2, column=0, columnspan=2)
+      
+      storage['table'] = table
       
       # label for show error mesages
       status_label = Message(body)

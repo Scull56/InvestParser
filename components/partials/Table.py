@@ -88,8 +88,6 @@ class Table(ctk.CTkFrame):
                                        selection_function = self.header_dropdown_selected,
                                        text = "Индустрия")
       
-      self.analyze_data()
-      
    def add_company(self, id, url):
       
       check = get_company_by_id(id)
@@ -128,7 +126,10 @@ class Table(ctk.CTkFrame):
    def update_data(self):
       pass
    
-   def analyze_data(self):
+   def set_scale(self):
+      pass
+   
+   def analyze_data(self, country, sector, industry):
       
       sets = {}
       data = self.sheet.data
@@ -138,7 +139,11 @@ class Table(ctk.CTkFrame):
          
       for i, row in enumerate(data):
          
-         group = f"{row[1]}{row[2]}{row[3]}"
+         group = ''
+         
+         if country: group += row[1]
+         if sector: group += row[2]
+         if industry: group += row[3]
          
          if group in sets:
             sets[group].append(i)
@@ -164,9 +169,13 @@ class Table(ctk.CTkFrame):
                bg = Table.analyze_colors[analyze_map[i][j]]
                rowIndex = sets[set][i]
                
-               self.sheet.highlight_cells(row=rowIndex, column= 5 + j, fg="#DCE4EE", bg=bg)
+               self.sheet.highlight_cells(row=rowIndex, column= 5 + j, bg=bg)
                
       self.sheet.redraw()
+   
+   def de_analyze_data(self):
+      
+      self.sheet.dehighlight_all()
    
    def header_dropdown_selected(self, event = None):
       
