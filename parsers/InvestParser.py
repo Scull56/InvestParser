@@ -19,10 +19,12 @@ class InvestParser():
       urlSummary = f'https://www.investing.com/instruments/Financials/changesummaryreporttypeajax?action=change_report_type&pid={id}&financial_id={id}&ratios_id={id}&period_type=Annual'
       urlRatios = f'https://www.investing.com/{company_path}-ratios{"?" + company_query if company_query != "" else ""}'
       urlTechnical = f'https://www.investing.com/{company_path}/technical/technical-summary{"?" + company_query if company_query != "" else ""}'
+      urlIncome = f'https://www.investing.com/instruments/Financials/changereporttypeajax?action=change_report_type&pair_ID={id}&report_type=INC&period_type=Annual'
       
       summary_res = requests.get(urlSummary)
       ratios_res = requests.get(urlRatios)
       technical_res = requests.get(urlTechnical)
+      income_res = requests.get(urlIncome)
       
       if summary_res.status_code != 200:
          raise NotFoundCompany()
@@ -33,9 +35,13 @@ class InvestParser():
       if technical_res.status_code != 200:
          raise NotFoundCompany()
       
+      if income_res.status_code != 200:
+         raise NotFoundCompany()
+      
       self.summary = Selector(text=summary_res.text)
       self.ratios =  Selector(text=ratios_res.text)
       self.technical = Selector(text=technical_res.text)
+      self.income = Selector(text=income_res.text)
       
    def parse(self):
       
@@ -49,8 +55,8 @@ class InvestParser():
       result["ebitda"] = self.parse_ebitda()
       result["net_profit_margin"] = self.parse_net_profit_margin()
       result["debt_to_equity"] = self.parse_debt_to_equity()
-      result["eps"] = self.parse_from_ratios('Basic EPS ')
-      result["p_e"] = self.parse_from_ratios('P/E Ratio ')
+      result["eps"] = self.parse_eps()
+      result["p_e"] = self.parse_p_e()
       result["p_s"] = self.parse_from_ratios('Price to Sales ')
       result["roe"] = self.parse_roe()
       result["roa"] = self.parse_roa()
@@ -66,11 +72,10 @@ class InvestParser():
          
          raise NotFoundParams(errors)
       
-      result['ebitda'] = int(result['ebitda'])
-      
-      float_list = ['net_profit_margin', 'debt_to_equity', 'eps', 'p_e', 'p_s', 'roe', 'roa']
+      float_list = ['ebitda', 'net_profit_margin', 'debt_to_equity', 'eps', 'p_e', 'p_s', 'roe', 'roa']
 
       for name in float_list:
+
          result[name] = float(result[name])
       
       return result
@@ -86,7 +91,12 @@ class InvestParser():
       
    def parse_ebitda(self):
       
-      return self.summary.xpath("/html/body/div[1]/table/tbody/tr[1]/td[2]/text()").get()
+      ebitda = self.summary.xpath("/html/body/div[1]/table/tbody/tr[1]/td[2]/text()").get()
+      
+      if ebitda == None:
+         ebitda = self.summary.xpath("/html/body/div[1]/table/tbody/tr[1]/td[3]/text()").get()
+      
+      return ebitda
    
    def parse_net_income(self):
       
@@ -113,7 +123,7 @@ class InvestParser():
       if equity == None or debt == None:
          return None
       
-      value = round((int(debt) / int(equity)) * 100, 2)
+      value = round((float(debt) / float(equity)) * 100, 2)
          
       return value
    
@@ -128,7 +138,7 @@ class InvestParser():
          if income == None or ebitda == None:
             return None
          
-         npm = round((int(income) / int(ebitda)) * 100, 2)
+         npm = round((float(income) / float(ebitda)) * 100, 2)
          
       else:
          npm = re.sub(r'%', '', npm)
@@ -153,7 +163,7 @@ class InvestParser():
          if income == None or assets == None:
             return None
          
-         roa = round((int(income) / int(assets)) * 100, 2)
+         roa = round((float(income) / float(assets)) * 100, 2)
          
       else:
          roa = re.sub(r'%', '', roa)
@@ -170,19 +180,55 @@ class InvestParser():
          if income == None or equity == None:
             return None
          
-         roe = round((int(income) / int(equity)) * 100, 2)
+         roe = round((float(income) / float(equity)) * 100, 2)
       else:
          roe = re.sub(r'%', '', roe)
          
       return roe
    
+   def parse_p_e(self):
+      
+      p_e = self.parse_from_ratios('P/E Ratio ')
+      
+      if p_e == None:
+         p_e = self.parse_from_technical('P/E Ratio')
+         
+      return p_e
+   
+   def parse_eps(self):
+         
+      eps = self.parse_from_technical('EPS')
+      
+      if eps == None:
+         eps = self.parse_from_ratios('Basic EPS ')
+      
+      if eps == None:
+         eps = self.parse_from_ratios('Diluted EPS ')
+      
+      if eps == None:
+         eps = self.income.xpath('//span[text()="Diluted Normalized EPS"]/../following-sibling::td[1]/text()').get()
+      
+      if eps == None:
+         eps = self.income.xpath('//span[text()="Diluted Normalized EPS"]/../following-sibling::td[2]/text()').get()
+         
+      return eps
+   
    def parse_from_ratios(self, text):
       
-      return self.ratios.xpath(f'//table[@id="rrTable"]//span[text()="{text}"]/../following-sibling::td[1]/text()').get()
+      ratio = self.ratios.xpath(f'//table[@id="rrTable"]//span[text()="{text}"]/../following-sibling::td[1]/text()').get()
+      
+      if ratio == '-':
+         return None
+      
+      return ratio
    
    def parse_tech_analysis(self):
       
       return self.technical.xpath('//table/tbody/tr[3]/td[6]/text()').get()
+   
+   def parse_from_technical(self, text):
+      
+      return self.technical.xpath(f'//dt[text()="{text}"]/following-sibling::dd/span/span[2]/text()').get()
    
    def parse_country(self):
       

@@ -1,3 +1,5 @@
+import copy
+
 class InvestAnalyzer():
    
    tech_analysis_dict = {
@@ -12,6 +14,8 @@ class InvestAnalyzer():
       self.mode_list = mode_list
       
    def analyze(self, data):
+      
+      data = copy.deepcopy(data)
 
       for row in data:
          for i in range(len(row)):
@@ -78,7 +82,7 @@ class InvestAnalyzer():
       if value >= avarageTop and value < maxBorder:
          return 'good' if mode == 'more' else 'bad'
       
-      if value >= avarageTop and value < avarageBottom:
+      if value <= avarageTop and value > avarageBottom:
          return 'neutral'
       
       if value <= avarageBottom and value > minBorder:

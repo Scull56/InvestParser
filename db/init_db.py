@@ -10,7 +10,7 @@ def init_db():
       industry TEXT DEFAULT "",
       sector TEXT DEFAULT "",
       title TEXT,
-      ebitda INTEGER,
+      ebitda REAL,
       net_profit_margin REAL, 
       p_e REAL,
       p_s REAL,

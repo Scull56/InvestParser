@@ -1,4 +1,5 @@
 from utils.db_request import *
+import sqlite3 as sq
 
 db_url = 'invest_parser.db'
 
@@ -28,24 +29,32 @@ def add_company(data):
    
    return db_request(db_url, command)
 
-def get_countries():
+def get_info():
    
-   command = "SELECT DISTINCT country FROM companies"
+   result = {}
    
-   return db_request(db_url, command)
+   connect = sq.connect(db_url)
+   cursor = connect.cursor()
    
-def get_industries():
+   country = "SELECT DISTINCT country FROM companies"
+   sector = "SELECT DISTINCT sector FROM companies"
+   industry = "SELECT DISTINCT industry FROM companies"
    
-   command = "SELECT DISTINCT industry FROM companies"
+   cursor.execute(country)
    
-   return db_request(db_url, command)
+   result['country'] = cursor.fetchall()
    
-
-def get_sectors():
+   cursor.execute(sector)
    
-   command = "SELECT DISTINCT sector FROM companies"
+   result['sector'] = cursor.fetchall()
    
-   return db_request(db_url, command)
+   cursor.execute(industry)
+   
+   result['industry'] = cursor.fetchall()
+   
+   connect.commit()
+   
+   return result
 
 def delete_companies(id_list):
    

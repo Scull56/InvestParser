@@ -57,12 +57,20 @@ class CTkTable(Sheet, ctk.CTkBaseClass):
                 header_height="1",
                 column_width=120,
                 row_height="1",
+                font_size=13,
                 align="w",
                 **kwargs):
       
-      font_family = tm.theme['CTkFont']['family']
-      font = (font_family, 13, "normal")
-      header_font = (font_family, 13, "bold")
+      self.base_sizes = {
+         'fs': font_size,
+         'cw': column_width,
+         'rh': row_height
+      }
+      
+      self.font_family = tm.theme['CTkFont']['family']
+      
+      font = (self.font_family, font_size, "normal")
+      header_font = (self.font_family, font_size, "bold")
       
       ctk.CTkBaseClass.__init__(self, *args, **kwargs)
       
@@ -97,8 +105,17 @@ class CTkTable(Sheet, ctk.CTkBaseClass):
       self.set_refresh_timer(True)
       
    def config(self, *args, **kwargs):
-      Sheet.config(self, **kwargs)
+      Sheet.config(self, *args, **kwargs)
+   
+   def set_scale(self, value):
       
+      self.header_font(newfont=(self.font_family, int(self.base_sizes['fs'] * value), 'bold'))
+      self.set_options(index_font=(self.font_family, int(self.base_sizes['fs'] * value), 'normal'))
+      self.font(newfont=(self.font_family, int(self.base_sizes['fs'] * value), 'normal'))
+      
+      self.set_all_column_widths(width = int(self.base_sizes['cw'] * value))
+      self.set_all_row_heights(height = int(self.base_sizes['rh'] * value))
+   
    def _draw(self, no_color_updates=False):
       self.change_theme()
       

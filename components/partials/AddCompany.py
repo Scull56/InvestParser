@@ -49,7 +49,7 @@ class AddСompany(ctk.CTkFrame):
             
             self.search_input.configure(values=values)
             
-            self.status_label.show_message('Компании загружены', "success")
+            self.search_input._open_dropdown_menu()
             
          else:
             self.status_label.show_message('Не найдено совпадений')
@@ -65,7 +65,15 @@ class AddСompany(ctk.CTkFrame):
       
       try:
          value = self.search_input.get()
-         data = self.data[value]
+         
+         if value in self.data:
+            
+            data = self.data[value]
+            
+         else:
+            
+            self.status_label.show_message("Выберите компанию из списка поиска")
+            return
          
          self.table.add_company(*data)
          self.status_label.show_message("Компания добавлена", "success")
@@ -80,9 +88,6 @@ class AddСompany(ctk.CTkFrame):
          
       except CompanyAlreadyAdded:
          self.status_label.show_message("Компания уже добавлена", 'info')
-
-      except KeyError:
-         self.status_label.show_message("Выберите компанию из списка поиска")
       
       except Exception as exc:
          self.status_label.show_message("Неизвестная ошибка")

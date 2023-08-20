@@ -8,7 +8,9 @@ class AnalyzeOptions(ctk.CTkFrame):
       
       super().__init__(master)
       
-      self.switcher = ctk.CTkSwitch(self, text="Анализировать компании", command=self.switch)
+      self.grid(sticky='w')
+      
+      self.switcher = ctk.CTkSwitch(self, text="Анализ", command=self.switch)
       self.switcher.grid(row=0, column=0, sticky="w")
       
       self.label = ctk.CTkLabel(self, text="Учитывать:")
@@ -31,8 +33,10 @@ class AnalyzeOptions(ctk.CTkFrame):
       
       table = storage['table']
       
-      if self.switcher.get():
-         table.analyze_data(self.country.get(), self.sector.get(), self.industry.get())
-         
-      else:
-         table.de_analyze_data()
+      if table != None:
+      
+         if self.switcher.get():
+            table.analyze_data(self.country.get(), self.sector.get(), self.industry.get())
+            
+         else:
+            table.de_analyze_data()

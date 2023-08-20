@@ -1,5 +1,4 @@
 import customtkinter as ctk
-import tksheet
 
 from modules.CTkTable import CTkTable
 
@@ -9,9 +8,7 @@ from analyzers.InvestAnalyzer import InvestAnalyzer
 
 from db.commands import (
    get_companies,
-   get_countries,
-   get_sectors,
-   get_industries,
+   get_info,
    add_company as db_add,
    delete_companies as db_delete,
    get_last_company_id,
@@ -21,11 +18,11 @@ from db.commands import (
 class Table(ctk.CTkFrame):
    
    analyze_colors = {
-      "best": "#084722",
-      "good": "#01240f",
-      "neutral": "#453b00",
-      "bad": "#4a0101",
-      "worst": "#6e0202"
+      "best": ["#54ff9b", "#006128"],
+      "good": ["#abffcf", "#20402c"],
+      "neutral": ["#fff4b0", "#4f4300"],
+      "bad": ["#ffb0b0", "#4f1d1d"],
+      "worst": ["#ff9494", "#6e0202"]
    }
    
    def __init__(self, master):
@@ -36,16 +33,21 @@ class Table(ctk.CTkFrame):
       self.grid_rowconfigure(0, weight=1)
       self.grid_columnconfigure(0, weight=1)
       
-      ctk.get_appearance_mode()
-      
       companies = get_companies()
-      countries = get_countries()
-      industries = get_industries()
-      sectors = get_sectors()
+      info = get_info()
       
-      countries = map(lambda item: item[0], countries)
-      industries = map(lambda item: item[0], industries)
-      sectors = map(lambda item: item[0], sectors)
+      countries = info['country']
+      industries = info['industry']
+      sectors = info['sector']
+      
+      self.countries = list(map(lambda item: item[0], countries))
+      self.industries = list(map(lambda item: item[0], industries))
+      self.sectors = list(map(lambda item: item[0], sectors))
+      
+      self.analyze = False
+      self.analyze_options = [True, True, True]
+      self.analyze_sets = None
+      self.analyze_definers = None
       
       data = []
       
@@ -71,23 +73,23 @@ class Table(ctk.CTkFrame):
       self.sheet.grid(row=0, column=0, sticky="nsew")
       
       self.sheet.create_header_dropdown(c = 1,
-                                       values = ["all", *countries],
+                                       values = ["all", *self.countries],
                                        set_value = "all",
                                        selection_function = self.header_dropdown_selected,
                                        text = "Страна")
       
       self.sheet.create_header_dropdown(c = 2,
-                                       values = ["all", *sectors],
+                                       values = ["all", *self.sectors],
                                        set_value = "all",
                                        selection_function = self.header_dropdown_selected,
                                        text = "Сектор")
       
       self.sheet.create_header_dropdown(c = 3,
-                                       values = ["all", *industries],
+                                       values = ["all", *self.industries],
                                        set_value = "all",
                                        selection_function = self.header_dropdown_selected,
                                        text = "Индустрия")
-      
+   
    def add_company(self, id, url):
       
       check = get_company_by_id(id)
@@ -110,9 +112,10 @@ class Table(ctk.CTkFrame):
       
       self.sheet.insert_row([lastId, data["country"], data["sector"], data["industry"], data["title"], data["ebitda"], data["net_profit_margin"], data["p_e"], data["p_s"], data["eps"], data["roe"], data["roa"], data["debt_to_equity"], data["tech_analysis"]])
       
-      self.analyze_data()
+      self.update_table()
       
    def delete_company(self):
+      
       rows = self.sheet.get_selected_rows()
       
       rows_id = map(lambda i: self.sheet.data[i][0], rows)
@@ -121,37 +124,80 @@ class Table(ctk.CTkFrame):
       
       self.sheet.delete_rows(rows)
       
-      self.analyze_data()
+      self.update_table()
    
+   def update_table(self):
+      
+      if self.analyze:
+         self.analyze_data(*self.analyze_options)
+         
+      info = get_info()
+         
+      countries = info['country']
+      industries = info['industry']
+      sectors = info['sector']
+      
+      countries = list(map(lambda item: item[0], countries))
+      industries = list(map(lambda item: item[0], industries))
+      sectors = list(map(lambda item: item[0], sectors))
+      
+      if (len(self.countries) != len(countries)):
+         
+         self.countries = countries
+         self.sheet.set_header_dropdown_values(c=1, values=['all', *self.countries])
+         
+      if (len(self.sectors) != len(sectors)):
+         
+         self.sectors = sectors
+         self.sheet.set_header_dropdown_values(c=2, values=['all', *self.sectors])
+         
+      if (len(self.industries) != len(industries)):
+         
+         self.industries = industries
+         self.sheet.set_header_dropdown_values(c=3, values=['all', *self.industries])
+         
    def update_data(self):
       pass
    
-   def set_scale(self):
-      pass
+   def set_scale(self, value):
+      
+      self.sheet.set_scale(value)
    
    def analyze_data(self, country, sector, industry):
+      
+      self.analyze = True
+      self.analyze_options = [country, sector, industry]
       
       sets = {}
       data = self.sheet.data
       
       if len(data) == 0:
          return
-         
-      for i, row in enumerate(data):
-         
-         group = ''
-         
-         if country: group += row[1]
-         if sector: group += row[2]
-         if industry: group += row[3]
-         
-         if group in sets:
-            sets[group].append(i)
+      
+      if country or sector or industry:
+      
+         for i, row in enumerate(data):
             
-         else:
-            sets[group] = [i]
+            group = ''
+            
+            if country: group += row[1]
+            if sector: group += row[2]
+            if industry: group += row[3]
+            
+            if group in sets:
+               sets[group].append(i)
+               
+            else:
+               sets[group] = [i]
+      else:
+         
+         sets = {'all': range(len(data))}
       
       analyzer = InvestAnalyzer(["more", "more", "near_zero", "near_zero", "more", "more", "more", "less", "value"])
+      
+      self.analyze_sets = sets
+      
+      definers = {}
       
       for set in sets:
          
@@ -163,19 +209,37 @@ class Table(ctk.CTkFrame):
          
          analyze_map = analyzer.analyze(dataSet)
          
-         for i in range(len(analyze_map)):
-            for j in range(len(analyze_map[i])):
+         definers[set] = analyze_map
+      
+      self.analyze_definers = definers
+      
+      self.highlight_table()
+   
+   def de_analyze_data(self):
+      
+      self.analyze = False
+      
+      self.sheet.dehighlight_all()
+   
+   def highlight_table(self):
+      
+      self.sheet.dehighlight_all()
+      
+      theme_index = ctk.AppearanceModeTracker.appearance_mode
+      
+      sets = self.analyze_sets
+      maps = self.analyze_definers
+      
+      for set in sets:
+         for i in range(len(maps[set])):
+            for j in range(len(maps[set][i])):
                
-               bg = Table.analyze_colors[analyze_map[i][j]]
+               bg = Table.analyze_colors[maps[set][i][j]][theme_index]
                rowIndex = sets[set][i]
                
                self.sheet.highlight_cells(row=rowIndex, column= 5 + j, bg=bg)
                
       self.sheet.redraw()
-   
-   def de_analyze_data(self):
-      
-      self.sheet.dehighlight_all()
    
    def header_dropdown_selected(self, event = None):
       
@@ -193,3 +257,10 @@ class Table(ctk.CTkFrame):
          self.sheet.display_rows(rows = rows, all_displayed = False)
          
       self.sheet.redraw()
+      
+   def _draw(self, no_color_updates=False):
+      super()._draw(no_color_updates=no_color_updates)
+      
+      if hasattr(self, 'sheet') and self.analyze:
+
+         self.highlight_table()
