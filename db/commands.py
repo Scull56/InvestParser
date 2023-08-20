@@ -64,5 +64,35 @@ def delete_companies(id_list):
    command = f"DELETE FROM companies WHERE {id_string}"
    
    return db_request(db_url, command)
+
+def get_companies_url_info():
    
+   command = 'SELECT id, company_id, url FROM companies'
+   
+   return db_request(db_url, command)
+
+def update_companies(data_list):
+   
+   connect = sq.connect(db_url)
+   cursor = connect.cursor()
+   
+   for data in data_list:
+      
+      id = data["id"]
+      c = data["country"]
+      s = data["sector"]
+      i = data["industry"]
+      e = data["ebitda"]
+      n = data["net_profit_margin"]
+      pe = data["p_e"] 
+      ps = data["p_s"]
+      ep = data["eps"]
+      oe = data["roe"]
+      oa = data["roa"]
+      de = data["debt_to_equity"]
+      t = data["tech_analysis"]
+      
+      cursor.execute(f'UPDATE companies SET country = "{c}", sector = "{s}", industry = "{i}", ebitda = {e}, net_profit_margin = {n}, p_e = {pe}, p_s = {ps}, eps = {ep}, roe = {oe}, roa = {oa}, debt_to_equity = {de}, tech_analysis = "{t}" WHERE id = {id}')
+   
+   connect.commit()
    

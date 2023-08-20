@@ -1,4 +1,5 @@
 import customtkinter as ctk
+import tksheet as tks
 
 from modules.CTkTable import CTkTable
 
@@ -12,7 +13,9 @@ from db.commands import (
    add_company as db_add,
    delete_companies as db_delete,
    get_last_company_id,
-   get_company_by_id
+   get_company_by_id,
+   get_companies_url_info,
+   update_companies
 )
 
 class Table(ctk.CTkFrame):
@@ -32,6 +35,8 @@ class Table(ctk.CTkFrame):
       self.grid(sticky="nsew")
       self.grid_rowconfigure(0, weight=1)
       self.grid_columnconfigure(0, weight=1)
+      
+      self.update_window = None
       
       companies = get_companies()
       info = get_info()
@@ -61,9 +66,19 @@ class Table(ctk.CTkFrame):
                             column_width=120,
                             row_height=75)
       
-      self.sheet.headers(["ID", "Страна","Сектор", "Индустрия", "Компания","EBITDA", "Net Profit Margin %", "P/E", "P/S", "EPS", "ROE %", "ROA %", "Debt/Equity %", "Технический анализ"])
+      self.sheet.headers(["ID", "Страна", "Сектор", "Индустрия", "Компания","EBITDA", "Net Profit Margin", "P/E", "P/S", "EPS", "ROE", "ROA", "Debt/Equity", "Технический анализ"])
 
       self.sheet.hide_columns(columns = 0)
+      
+      def format_ebitda(value, **kw):
+         return f'{round(float(value / 1000000), 2)} млрд.'
+      
+      self.sheet.format_column(5, formatter_options = tks.formatter(datatypes=[float], format_function = float, to_str_function=format_ebitda))
+      
+      self.sheet.format_column(6, formatter_options = tks.percentage_formatter(decimals=2))
+      self.sheet.format_column(10, formatter_options = tks.percentage_formatter(decimals=2))
+      self.sheet.format_column(11, formatter_options = tks.percentage_formatter(decimals=2))
+      self.sheet.format_column(12, formatter_options = tks.percentage_formatter(decimals=2))
       
       self.sheet.enable_bindings()
       self.sheet.disable_bindings(['rc_insert_column', 'rc_delete_column', 'edit_cell', 'delete', 'paste',
@@ -157,7 +172,36 @@ class Table(ctk.CTkFrame):
          self.sheet.set_header_dropdown_values(c=3, values=['all', *self.industries])
          
    def update_data(self):
-      pass
+      
+      url_info = get_companies_url_info()
+      
+      if len(url_info) == 0:
+         return
+      
+      data_list = []
+      
+      for info in url_info:
+         
+         parser = InvestParser(info[1], info[2])
+            
+         data = parser.parse()
+         
+         data['id'] = info[0]
+         
+         data_list.append(data)
+      
+      update_companies(data_list)
+      
+      companies = get_companies()
+      
+      data = []
+      
+      for item in companies:
+         data.append([item[0], item[3], item[5], item[4], item[6], item[7], item[8], item[9], item[10], item[11], item[12], item[13], item[14], item[15]])
+      
+      self.sheet.set_sheet_data(data=data)
+      
+      self.update_table()
    
    def set_scale(self, value):
       
@@ -257,7 +301,7 @@ class Table(ctk.CTkFrame):
          self.sheet.display_rows(rows = rows, all_displayed = False)
          
       self.sheet.redraw()
-      
+   
    def _draw(self, no_color_updates=False):
       super()._draw(no_color_updates=no_color_updates)
       

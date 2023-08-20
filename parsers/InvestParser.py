@@ -123,7 +123,7 @@ class InvestParser():
       if equity == None or debt == None:
          return None
       
-      value = round((float(debt) / float(equity)) * 100, 2)
+      value = round((float(debt) / float(equity)), 2)
          
       return value
    
@@ -138,10 +138,10 @@ class InvestParser():
          if income == None or ebitda == None:
             return None
          
-         npm = round((float(income) / float(ebitda)) * 100, 2)
+         npm = round((float(income) / float(ebitda)), 2)
          
       else:
-         npm = re.sub(r'%', '', npm)
+         npm = float(re.sub(r'%', '', npm)) / 100
          
       return npm
    
@@ -154,6 +154,7 @@ class InvestParser():
       return assets
    
    def parse_roa(self):
+      
       roa = self.parse_from_ratios('Return on Assets ')
       
       if roa == None or roa == '0%':
@@ -163,14 +164,15 @@ class InvestParser():
          if income == None or assets == None:
             return None
          
-         roa = round((float(income) / float(assets)) * 100, 2)
+         roa = round((float(income) / float(assets)), 2)
          
       else:
-         roa = re.sub(r'%', '', roa)
+         roa = float(re.sub(r'%', '', roa)) / 100
          
       return roa
    
    def parse_roe(self):
+      
       roe = self.parse_from_ratios('Return on Equity ')
       
       if roe == None or roe == '0%':
@@ -180,9 +182,9 @@ class InvestParser():
          if income == None or equity == None:
             return None
          
-         roe = round((float(income) / float(equity)) * 100, 2)
+         roe = round((float(income) / float(equity)), 2)
       else:
-         roe = re.sub(r'%', '', roe)
+         roe = float(re.sub(r'%', '', roe)) / 100
          
       return roe
    

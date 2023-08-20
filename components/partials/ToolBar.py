@@ -1,5 +1,7 @@
 import customtkinter as ctk
 
+from components.UpdateWindow import UpdateWindow
+
 from utils.InvestExceptions import *
 
 class ToolBar(ctk.CTkFrame):
@@ -8,6 +10,7 @@ class ToolBar(ctk.CTkFrame):
       super().__init__(master)
       
       self.table = table
+      self.status_label = status_label
       
       self.configure(fg_color="transparent")
       
@@ -30,7 +33,19 @@ class ToolBar(ctk.CTkFrame):
       self.resize_value = 1 if self.resize_value == self.min_resize_value else self.min_resize_value
       
    def update_data(self):
-      self.table.update_data()
+      
+      self.update_window = UpdateWindow()
+      
+      try:
+         self.table.update_data()
+         self.status_label.show_message('Обновление данных прошло успешно', 'success')
+         
+      except Exception as exc:
+         self.status_label.show_message('Неизвестная ошибка')
+         raise exc()
+         
+      self.update_window.destroy()
+      self.update_window = None
       
    def delete_company(self):
       self.table.delete_company()
