@@ -7,7 +7,7 @@ class Message(ctk.CTkFrame):
       'success': "#29a648",
       'error': "#d03b3b",
       'info': "#3B8ED0",
-      'warning': '#d0b53b'
+      'warning': '#baa83f'
    }
    
    def __init__(self, master):

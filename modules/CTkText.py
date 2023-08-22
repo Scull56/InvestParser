@@ -1,11 +1,7 @@
 import customtkinter as ctk
 
-class CTkText(ctk.CTkTextbox):
+class CTkText(ctk.CTkLabel):
    
-   def __init__(self, master, text, *args, **kwargs):
+   def __init__(self, master, text, wraplength=300, *args, **kwargs):
       
-      super().__init__(master, *args, fg_color='transparent', wrap='word', activate_scrollbars=False, **kwargs)
-      
-      self.insert('end', text=text)
-      self.configure(state='disabled')
-      self.grid(sticky='nsew')
+      super().__init__(master, *args, text=text, wraplength=wraplength, justify='left', **kwargs)

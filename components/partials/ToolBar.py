@@ -51,7 +51,7 @@ class ToolBar(ctk.CTkFrame):
             logging.info('Обновление данных завершено успешно')
             
          else:
-            self.status_label.show_message('Обновление завершено, но некоторые данные не были обновлены', 'warning')
+            self.status_label.show_message('Обновление завершено, но не все данные обновлены', 'warning')
             
             not_params_maped = map(lambda item: "\n  " + item[0] + ": " + ", ".join(item[1]), errors["not_params"])
             
