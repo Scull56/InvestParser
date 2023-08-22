@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from tkinter import *
+import logging
 
 import json
 import re
@@ -64,6 +65,7 @@ class AddСompany(ctk.CTkFrame):
    def add_company(self):
       
       try:
+           
          value = self.search_input.get()
          
          if value in self.data:
@@ -78,17 +80,23 @@ class AddСompany(ctk.CTkFrame):
          self.table.add_company(*data)
          self.status_label.show_message("Компания добавлена", "success")
          
+         logging.info(f'Добавлена компания: {value}')
+         
          self.search_input.set("")
          
       except NotFoundCompany:
          self.status_label.show_message("Ошибка: введено неправильное название компании")
+         logging.error('Ошибка: введено неправильное название компании')
       
       except NotFoundParams as error:
          self.status_label.show_message(f"Ошибка: не найдены параметры {', '.join(error.params)}")
+         logging.error(f"Ошибка: не найдены параметры {', '.join(error.params)}")
          
       except CompanyAlreadyAdded:
          self.status_label.show_message("Компания уже добавлена", 'info')
       
       except Exception as exc:
          self.status_label.show_message("Неизвестная ошибка")
-         raise exc()
+         logging.exception('Exception')
+         
+      

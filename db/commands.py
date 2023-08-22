@@ -1,7 +1,9 @@
 from utils.db_request import *
-import sqlite3 as sq
 
-db_url = 'invest_parser.db'
+import sqlite3 as sq
+import aiosqlite
+
+db_url = 'data/invest_parser.db'
 
 def get_companies():
    
@@ -65,16 +67,15 @@ def delete_companies(id_list):
    
    return db_request(db_url, command)
 
-def get_companies_url_info():
+def get_companies_info():
    
-   command = 'SELECT id, company_id, url FROM companies'
+   command = 'SELECT id, company_id, url, title FROM companies'
    
    return db_request(db_url, command)
 
-def update_companies(data_list):
+async def update_companies(data_list):
    
-   connect = sq.connect(db_url)
-   cursor = connect.cursor()
+   db = await aiosqlite.connect(db_url)
    
    for data in data_list:
       
@@ -92,7 +93,9 @@ def update_companies(data_list):
       de = data["debt_to_equity"]
       t = data["tech_analysis"]
       
-      cursor.execute(f'UPDATE companies SET country = "{c}", sector = "{s}", industry = "{i}", ebitda = {e}, net_profit_margin = {n}, p_e = {pe}, p_s = {ps}, eps = {ep}, roe = {oe}, roa = {oa}, debt_to_equity = {de}, tech_analysis = "{t}" WHERE id = {id}')
+      cursor = await db.execute(f'UPDATE companies SET country = "{c}", sector = "{s}", industry = "{i}", ebitda = {e}, net_profit_margin = {n}, p_e = {pe}, p_s = {ps}, eps = {ep}, roe = {oe}, roa = {oa}, debt_to_equity = {de}, tech_analysis = "{t}" WHERE id = {id}')
+      
+      await cursor.close()
    
-   connect.commit()
+   await db.close()
    

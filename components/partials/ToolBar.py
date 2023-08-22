@@ -1,8 +1,8 @@
 import customtkinter as ctk
-
-from components.UpdateWindow import UpdateWindow
+import logging
 
 from utils.InvestExceptions import *
+from utils.storage import storage
 
 class ToolBar(ctk.CTkFrame):
    
@@ -34,18 +34,39 @@ class ToolBar(ctk.CTkFrame):
       
    def update_data(self):
       
-      self.update_window = UpdateWindow()
+      logging.info('Начало обновления данных')
       
+      storage['app'].open_update_window()
+         
       try:
-         self.table.update_data()
-         self.status_label.show_message('Обновление данных прошло успешно', 'success')
          
+         errors = self.table.update_data()
+         
+         storage['app'].close_update_window()
+         
+         if len(errors['not_found']) == 0 and len(errors['not_params']):
+         
+            self.status_label.show_message('Обновление данных прошло успешно', 'success')
+            
+            logging.info('Обновление данных завершено успешно')
+            
+         else:
+            self.status_label.show_message('Обновление завершено, но некоторые данные не были обновлены', 'warning')
+            
+            not_params_maped = map(lambda item: "\n  " + item[0] + ": " + ", ".join(item[1]), errors["not_params"])
+            
+            companies = f'\n {"Страницы компаний: " + ", ".join(errors["not_found"])}' if len(errors["not_found"]) > 0 else ''
+            params = f'\n {"Индикаторы компаний: " + ", ".join(not_params_maped)}' if len(errors["not_params"]) > 0 else ''
+            
+            logging.warning(f'Обновление завершено, но не были найдены следующие данные:{companies}{params}')
+            
       except Exception as exc:
-         self.status_label.show_message('Неизвестная ошибка')
-         raise exc()
          
-      self.update_window.destroy()
-      self.update_window = None
+         self.status_label.show_message('Неизвестная ошибка')
+         logging.exception('Exception')
       
    def delete_company(self):
-      self.table.delete_company()
+      
+      deleted_companies = self.table.delete_company()
+      
+      logging.info(f'Удалены компании: {", ".join(deleted_companies)}')

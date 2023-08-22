@@ -16,19 +16,22 @@ class AnalyzeOptions(ctk.CTkFrame):
       self.label = ctk.CTkLabel(self, text="Учитывать:")
       self.label.grid(row=1, column=0, sticky="w")
       
-      self.country = ctk.CTkCheckBox(self, text="Страна")
+      self.country = ctk.CTkCheckBox(self, text="Страна", command=self.update_options)
       self.country.grid(row=2, column=0, pady=(0, 5), sticky="w")
       self.country.select()
       
-      self.sector = ctk.CTkCheckBox(self, text="Сектор")
+      self.sector = ctk.CTkCheckBox(self, text="Сектор", command=self.update_options)
       self.sector.grid(row=3, column=0, pady=(0, 5),sticky="w")
       self.sector.select()
       
-      self.industry = ctk.CTkCheckBox(self, text="Индустрия")
+      self.industry = ctk.CTkCheckBox(self, text="Индустрия", command=self.update_options)
       self.industry.grid(row=4, column=0, sticky="w")
       self.industry.select()
       
+   def update_options(self):
       
+      self.switch()
+   
    def switch(self):
       
       table = storage['table']
@@ -36,6 +39,7 @@ class AnalyzeOptions(ctk.CTkFrame):
       if table != None:
       
          if self.switcher.get():
+            
             table.analyze_data(self.country.get(), self.sector.get(), self.industry.get())
             
          else:

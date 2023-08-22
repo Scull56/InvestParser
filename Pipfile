@@ -8,6 +8,7 @@ customtkinter = "*"
 tksheet = "*"
 requests = "*"
 parsel = "*"
+aiosqlite = "*"
 
 [dev-packages]
 

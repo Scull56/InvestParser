@@ -12,6 +12,7 @@ class UpdateWindow(ctk.CTkToplevel):
       
       self.geometry(window_center(self, 200, 100))
       self.title("InvestParser: Обновление данных")
+      self.iconbitmap(default='favicon.ico')
       
       self.grid_columnconfigure(0, weight=1)
       self.grid_rowconfigure(0, weight=1)

@@ -1,5 +1,6 @@
 import customtkinter as ctk
 import tksheet as tks
+import asyncio
 
 from modules.CTkTable import CTkTable
 
@@ -14,7 +15,7 @@ from db.commands import (
    delete_companies as db_delete,
    get_last_company_id,
    get_company_by_id,
-   get_companies_url_info,
+   get_companies_info,
    update_companies
 )
 
@@ -35,8 +36,6 @@ class Table(ctk.CTkFrame):
       self.grid(sticky="nsew")
       self.grid_rowconfigure(0, weight=1)
       self.grid_columnconfigure(0, weight=1)
-      
-      self.update_window = None
       
       companies = get_companies()
       info = get_info()
@@ -131,15 +130,22 @@ class Table(ctk.CTkFrame):
       
    def delete_company(self):
       
-      rows = self.sheet.get_selected_rows()
+      rows = self.sheet.get_selected_rows(return_tuple=True)
       
-      rows_id = map(lambda i: self.sheet.data[i][0], rows)
+      companies_name = []
+      rows_id = []
       
+      for i in rows:
+         companies_name.append(self.sheet.data[i][4])
+         rows_id.append(self.sheet.data[i][0])
+
       db_delete(rows_id)
       
       self.sheet.delete_rows(rows)
       
       self.update_table()
+      
+      return companies_name
    
    def update_table(self):
       
@@ -173,24 +179,38 @@ class Table(ctk.CTkFrame):
          
    def update_data(self):
       
-      url_info = get_companies_url_info()
+      url_info = get_companies_info()
       
       if len(url_info) == 0:
          return
       
       data_list = []
+      errors = {
+         'not_found': [],
+         'not_params': []
+      }
       
       for info in url_info:
          
          parser = InvestParser(info[1], info[2])
+         
+         data = None
+         
+         try:
+            data = parser.parse()
+            data['id'] = info[0]
+            data_list.append(data)
             
-         data = parser.parse()
+         except NotFoundParams as error:
+            errors['not_params'].append((info[3], error.params))
+            
+         except NotFoundCompany:
+            errors['not_found'].append(info[3])
          
-         data['id'] = info[0]
-         
-         data_list.append(data)
+         except Exception as exc:
+            raise exc()
       
-      update_companies(data_list)
+      asyncio.run(update_companies(data_list))
       
       companies = get_companies()
       
@@ -202,6 +222,8 @@ class Table(ctk.CTkFrame):
       self.sheet.set_sheet_data(data=data)
       
       self.update_table()
+      
+      return errors
    
    def set_scale(self, value):
       

@@ -1,7 +1,7 @@
 from utils.db_request import *
 
 def init_db():
-   db_request('invest_parser.db', '''
+   db_request('data/invest_parser.db', '''
    CREATE TABLE IF NOT EXISTS companies (
       id INTEGER PRIMARY KEY,
       company_id INTEGER,

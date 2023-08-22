@@ -3,31 +3,34 @@ import threading
 
 class Message(ctk.CTkFrame):
    
+   colors = {
+      'success': "#29a648",
+      'error': "#d03b3b",
+      'info': "#3B8ED0",
+      'warning': '#d0b53b'
+   }
+   
    def __init__(self, master):
       super().__init__(master)
       
-      self.grid(sticky="ew")
-      
-      self.isActive = False
-      
+      self.grid(sticky="nsew")
       self.grid_columnconfigure(0, weight=1)
       self.grid_rowconfigure(0, weight=1)
       
-      self.status_label = ctk.CTkLabel(self, text="", text_color="#DCE4EE", justify='left')
-      self.status_label.grid(row=0, column=0)
+      self.isActive = False
+      
+      self.status_label = ctk.CTkLabel(self, text="", text_color="#DCE4EE")
+      self.status_label.grid(row=0, column=0, sticky='w', padx=(7, 0))
       
    def show_message(self, message, style="error"):
+      
+      if style not in ['success', 'error', 'info']:
+         raise Exception('need specify "error", "info" or "success" style param for message')
       
       if self.isActive :
          self.timer.cancel()
       
-      bg_color = "#d03b3b"
-      
-      if style == "info":
-         bg_color = "#3B8ED0"
-      
-      if style == "success":
-         bg_color = "#248a5e"
+      bg_color = Message.colors[style]
       
       self.configure(fg_color=bg_color)
       
