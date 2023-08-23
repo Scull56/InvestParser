@@ -78,6 +78,7 @@ class AddСompany(ctk.CTkFrame):
             return
          
          self.table.add_company(*data)
+         
          self.status_label.show_message("Компания добавлена", "success")
          
          logging.info(f'Добавлена компания: {value}')

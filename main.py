@@ -71,7 +71,7 @@ class App(ctk.CTk):
    
    def close_update_window(self):
       if self.update_window is not None or self.update_window.winfo_exists():
-         self.update_window.destroy()
+         self.update_window.close_window()
    
    def open_instruction_window(self):
       if self.instruction_window is None or not self.instruction_window.winfo_exists():

@@ -14,6 +14,11 @@ class UpdateWindow(ctk.CTkToplevel):
       self.title("InvestParser: Обновление данных")
       self.iconbitmap(default='favicon.ico')
       
+      def Quit():
+         pass
+      
+      self.protocol("WM_DELETE_WINDOW", Quit)
+      
       self.grid_columnconfigure(0, weight=1)
       self.grid_rowconfigure(0, weight=1)
       
@@ -45,8 +50,8 @@ class UpdateWindow(ctk.CTkToplevel):
       self.timer = threading.Timer(1, self.update_loader)
       self.timer.start()
    
-   def destroy(self):
+   def close_window(self):
       
       self.timer.cancel()
       
-      return super().destroy()
+      self.destroy()

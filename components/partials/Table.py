@@ -1,6 +1,8 @@
 import customtkinter as ctk
 import tksheet as tks
+
 import asyncio
+from threading import Thread
 
 from modules.CTkTable import CTkTable
 
@@ -177,53 +179,66 @@ class Table(ctk.CTkFrame):
          self.industries = industries
          self.sheet.set_header_dropdown_values(c=3, values=['all', *self.industries])
          
-   def update_data(self):
+   def update_data(self, callback):
       
       url_info = get_companies_info()
       
       if len(url_info) == 0:
-         return
+         raise NotHaveDataForUpdate()
       
-      data_list = []
-      errors = {
-         'not_found': [],
-         'not_params': []
-      }
+      asyncio.set_event_loop
       
-      for info in url_info:
+      def update_ui(companies):
          
-         parser = InvestParser(info[1], info[2])
+         data = []
+               
+         for item in companies:
+            data.append([item[0], item[3], item[5], item[4], item[6], item[7], item[8], item[9], item[10], item[11], item[12], item[13], item[14], item[15]])
          
-         data = None
+         self.sheet.set_sheet_data(data=data)
          
-         try:
-            data = parser.parse()
-            data['id'] = info[0]
-            data_list.append(data)
+         self.update_table()
+      
+      def update_thread():
+         
+         data_list = []
+         errors = {
+            'not_found': [],
+            'not_params': []
+         }
+         
+         for info in url_info:
             
-         except NotFoundParams as error:
-            errors['not_params'].append((info[3], error.params))
+            parser = InvestParser(info[1], info[2])
             
-         except NotFoundCompany:
-            errors['not_found'].append(info[3])
+            data = None
+            
+            try:
+               data = parser.parse()
+               data['id'] = info[0]
+               data_list.append(data)
+               
+            except NotFoundParams as error:
+               errors['not_params'].append((info[3], error.params))
+               
+            except NotFoundCompany:
+               errors['not_found'].append(info[3])
+            
+            except Exception as exc:
+               raise exc()
+
+         async def db_update():
+            await update_companies(data_list)
          
-         except Exception as exc:
-            raise exc()
-      
-      asyncio.run(update_companies(data_list))
-      
-      companies = get_companies()
-      
-      data = []
-      
-      for item in companies:
-         data.append([item[0], item[3], item[5], item[4], item[6], item[7], item[8], item[9], item[10], item[11], item[12], item[13], item[14], item[15]])
-      
-      self.sheet.set_sheet_data(data=data)
-      
-      self.update_table()
-      
-      return errors
+         asyncio.run(db_update())
+         
+         companies = get_companies()
+         
+         update_ui(companies)
+         callback(errors)
+
+      thread = Thread(target=update_thread)
+      thread.start()
    
    def set_scale(self, value):
       

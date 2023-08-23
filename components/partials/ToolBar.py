@@ -1,5 +1,6 @@
 import customtkinter as ctk
 import logging
+import asyncio
 
 from utils.InvestExceptions import *
 from utils.storage import storage
@@ -40,30 +41,43 @@ class ToolBar(ctk.CTkFrame):
          
       try:
          
-         errors = self.table.update_data()
+         def callback(errors):
+            
+            storage['app'].close_update_window()
+            
+            if len(errors['not_found']) == 0 and len(errors['not_params']) == 0:
+            
+               self.status_label.show_message('Обновление данных прошло успешно', 'success')
+               
+               logging.info('Обновление данных завершено успешно')
+               
+            else:
+               self.status_label.show_message('Обновление завершено, но не все данные обновлены', 'warning')
+               
+               not_params_maped = map(lambda item: "\n  " + item[0] + ": " + ", ".join(item[1]), errors["not_params"])
+               
+               companies = f'\n {"Страницы компаний: " + ", ".join(errors["not_found"])}' if len(errors["not_found"]) > 0 else ''
+               params = f'\n {"Индикаторы компаний: " + ", ".join(not_params_maped)}' if len(errors["not_params"]) > 0 else ''
+               
+               logging.warning(f'Обновление завершено, но не были найдены следующие данные:{companies}{params}')
+            
+         self.table.update_data(callback)
+      
+      except NotHaveDataForUpdate:
+         
+         self.status_label.show_message('Нет данных для обновления', 'info')
          
          storage['app'].close_update_window()
          
-         if len(errors['not_found']) == 0 and len(errors['not_params']):
-         
-            self.status_label.show_message('Обновление данных прошло успешно', 'success')
-            
-            logging.info('Обновление данных завершено успешно')
-            
-         else:
-            self.status_label.show_message('Обновление завершено, но не все данные обновлены', 'warning')
-            
-            not_params_maped = map(lambda item: "\n  " + item[0] + ": " + ", ".join(item[1]), errors["not_params"])
-            
-            companies = f'\n {"Страницы компаний: " + ", ".join(errors["not_found"])}' if len(errors["not_found"]) > 0 else ''
-            params = f'\n {"Индикаторы компаний: " + ", ".join(not_params_maped)}' if len(errors["not_params"]) > 0 else ''
-            
-            logging.warning(f'Обновление завершено, но не были найдены следующие данные:{companies}{params}')
-            
       except Exception as exc:
          
          self.status_label.show_message('Неизвестная ошибка')
+         
          logging.exception('Exception')
+         
+         storage['app'].close_update_window()
+         
+         raise exc()
       
    def delete_company(self):
       

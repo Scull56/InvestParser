@@ -11,10 +11,11 @@ class InstructionWindow(ctk.CTkToplevel):
    def __init__(self, *args, **kwargs):
       super().__init__(*args, **kwargs)
       
-      self.geometry(window_center(self, 400, 500))
+      self.geometry(window_center(self, 600, 800))
       self.title("InvestParser: Инструкция")
       self.resizable(width=False, height=True)
-      self.wm_iconbitmap(default='favicon.ico')
+      
+      self.iconbitmap(default='favicon.ico')
       
       self.grid_columnconfigure(0, weight=1)
       self.grid_rowconfigure(0, weight=1)
@@ -74,7 +75,7 @@ class InstructionWindow(ctk.CTkToplevel):
          body,
          light_image_path='instructions/ui_light.png',
          dark_image_path='instructions/ui_dark.png',
-         width=360)
+         width=560)
       about_img.pack(anchor="w", pady=(0, 10))
       
       about_ui = CTkText(body, text=ui_text)
@@ -99,7 +100,7 @@ class InstructionWindow(ctk.CTkToplevel):
          body,
          light_image_path='instructions/add_light.png',
          dark_image_path='instructions/add_dark.png',
-         width=360)
+         width=560)
       add_img.pack(anchor="w", pady=(0, 10))
       
       add = CTkText(body, text=add_text)
@@ -112,7 +113,7 @@ class InstructionWindow(ctk.CTkToplevel):
          body,
          light_image_path='instructions/delete_light.png',
          dark_image_path='instructions/delete_dark.png',
-         width=360)
+         width=560)
       delete_img.pack(anchor="w", pady=(0, 10))
       
       delete = CTkText(body, text=delete_text)
@@ -125,7 +126,7 @@ class InstructionWindow(ctk.CTkToplevel):
          body,
          light_image_path='instructions/palete_light.png',
          dark_image_path='instructions/palete_dark.png',
-         width=360)
+         width=560)
       analyze_img.pack(anchor="w", pady=(0, 10))
       
       analyze = CTkText(body, text=analyze_text)
@@ -138,7 +139,7 @@ class InstructionWindow(ctk.CTkToplevel):
          body,
          light_image_path='instructions/message_light.png',
          dark_image_path='instructions/message_dark.png',
-         width=360)
+         width=560)
       message_img.pack(anchor="w", pady=(0, 10))
       
       message = CTkText(body, text=message_text)

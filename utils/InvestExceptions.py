@@ -12,3 +12,6 @@ class NotFoundCompanyParams(Exception):
          self.companies = companies
 class CompanyAlreadyAdded(Exception):
    pass
+
+class NotHaveDataForUpdate(Exception):
+   pass

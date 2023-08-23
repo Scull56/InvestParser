@@ -2,6 +2,7 @@ from utils.db_request import *
 
 import sqlite3 as sq
 import aiosqlite
+import asyncio
 
 db_url = 'data/invest_parser.db'
 
@@ -77,6 +78,8 @@ async def update_companies(data_list):
    
    db = await aiosqlite.connect(db_url)
    
+   tasks = []
+   
    for data in data_list:
       
       id = data["id"]
@@ -93,9 +96,13 @@ async def update_companies(data_list):
       de = data["debt_to_equity"]
       t = data["tech_analysis"]
       
-      cursor = await db.execute(f'UPDATE companies SET country = "{c}", sector = "{s}", industry = "{i}", ebitda = {e}, net_profit_margin = {n}, p_e = {pe}, p_s = {ps}, eps = {ep}, roe = {oe}, roa = {oa}, debt_to_equity = {de}, tech_analysis = "{t}" WHERE id = {id}')
-      
-      await cursor.close()
+      async def async_fun():
+         cursor = await db.execute(f'UPDATE companies SET country = "{c}", sector = "{s}", industry = "{i}", ebitda = {e}, net_profit_margin = {n}, p_e = {pe}, p_s = {ps}, eps = {ep}, roe = {oe}, roa = {oa}, debt_to_equity = {de}, tech_analysis = "{t}" WHERE id = {id}')
+         await cursor.close()
+         
+      tasks.append(async_fun())
+   
+   await asyncio.gather(*tasks)
    
    await db.close()
    

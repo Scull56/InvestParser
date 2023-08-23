@@ -24,8 +24,8 @@ class Message(ctk.CTkFrame):
       
    def show_message(self, message, style="error"):
       
-      if style not in ['success', 'error', 'info']:
-         raise Exception('need specify "error", "info" or "success" style param for message')
+      if style not in Message.colors:
+         raise Exception('need specify "error", "info", "warning" or "success" style param for message')
       
       if self.isActive :
          self.timer.cancel()
