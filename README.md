@@ -62,7 +62,7 @@
 
 **Технический анализ** - совокупность прогнозов показателей индикаторов технического анализа за последний месяц.
 
-## Установка (для разработчиков)
+## Установка и сборка (для разработчиков)
 ```
 // Клонирование репозитория
 git clone https://github.com/Scull56/InvestParser.git
@@ -70,4 +70,10 @@ git clone https://github.com/Scull56/InvestParser.git
 // Установка зависимостей
 pip install pipenv --user
 pipenv install
+
+// Создание нового файла конфигурации для сборки
+pyi-makespec src/main.py
+
+// Сборка приложения для Windows
+pyinstaller windows.spec
 ```
