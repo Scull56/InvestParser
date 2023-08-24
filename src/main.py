@@ -1,6 +1,8 @@
 import customtkinter as ctk
 
+import os
 import json
+import logging
 
 from components.SideBar import SideBar
 from components.MainView import MainView
@@ -13,7 +15,11 @@ from db.init_db import init_db
 from utils.window_position import window_center
 from utils.storage import storage
 
-import logging
+try:
+   os.mkdir('data')
+   
+except:
+   pass
 
 log_format = "%(asctime)s %(levelname)s %(message)s"
 logging.basicConfig(level=logging.INFO, filename="data/app.log", filemode="w", encoding='UTF-8', format=log_format)

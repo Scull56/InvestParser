@@ -9,8 +9,10 @@ tksheet = "*"
 requests = "*"
 parsel = "*"
 aiosqlite = "*"
+pillow = "*"
 
 [dev-packages]
+pyinstaller = "*"
 
 [requires]
 python_version = "3.11"
